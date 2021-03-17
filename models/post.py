@@ -6,44 +6,24 @@ class Post(db.Model):
     __tablename__ = 'post'
 
     id = db.Column(db.Integer, primary_key=True)
-    value = db.Column(db.String(40))
-    description = db.Column(db.String(100))
+    value = db.Column(db.String(1000))
+    description = db.Column(db.String(100), default=None)
     created_at = db.Column(db.DateTime(), nullable=False,
                            server_default=db.func.now())
     updated_at = db.Column(db.DateTime(), nullable=False,
                            server_default=db.func.now(), onupdate=db.func.now())
     user_id = db.Column(db.Integer(), db.ForeignKey("user.id"))
     image = db.Column(db.String(100), default=None)
-    ingredients = db.Column(db.String(150))
-    @classmethod
-    def get_all_published(cls, page, per_page, sort, order, q):
-        keyword = '%{keyword}%'.format(keyword=q)
-        field = getattr(cls, sort)
-        if order == 'asc':
-            sort_logic = asc(field)
-        else:
-            sort_logic = desc(field)
-
-        return cls.query.filter(or_(cls.name.ilike(keyword),cls.description.ilike(keyword),
-                                    cls.ingredients.ilike(keyword)),cls.is_public.is_(True)). \
-            order_by(sort_logic).paginate(page=page, per_page=per_page, max_per_page=100)
+    num_likes = db.Column(db.Integer(), default=0)
 
     @classmethod
     def get_by_id(cls, post_id):
         return cls.query.filter_by(id=post_id).first()
 
     @classmethod
-    def get_all_by_user(cls, page, per_page, user_id, visibility='public'):
-        if visibility == 'public':
-            return cls.query.filter_by(user_id=user_id, is_public=True). \
-                order_by(desc(cls.created_at)).paginate(page=page, per_page=per_page, max_per_page=100)
-
-        elif visibility == 'private':
-            return cls.query.filter_by(user_id=user_id, is_public=False). \
-                order_by(desc(cls.created_at)).paginate(page=page, per_page=per_page, max_per_page=100)
-        else:
-            return cls.query.filter_by(user_id=user_id). \
-                order_by(desc(cls.created_at)).paginate(page=page, per_page=per_page, max_per_page=100)
+    def get_all_by_user(cls, page, per_page, user_id):
+        return cls.query.filter_by(user_id=user_id). \
+            order_by(desc(cls.created_at)).paginate(page=page, per_page=per_page, max_per_page=100)
 
     def delete(self):
         db.session.delete(self)

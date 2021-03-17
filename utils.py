@@ -46,3 +46,15 @@ def compress_image(filename, folder):
 def clear_cache(key_prefix):
     keys = [key for key in cache.cache._cache.keys() if key.startswith(key_prefix)]
     cache.delete_many(*keys)
+
+class Mail(object):
+    def __init__(self, domain, api_key):
+        # do stuff
+
+    def send_email(self,
+                   to,
+                   subject,
+                   text,
+                   html,
+                   link):
+        #do stuff
