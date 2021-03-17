@@ -7,8 +7,9 @@ from schemas.user import UserSchema
 from webargs import fields
 from webargs.flaskparser import use_kwargs
 from schemas.post import PostSchema
-from schemas.pagination import RecipePaginationSchema
+from schemas.pagination import PostPaginationSchema
 from models.post import Post
+from models.friend import Friend
 from utils import verify_token, generate_token, save_image, clear_cache
 from utils import Mail
 import os
@@ -17,7 +18,7 @@ from extensions import image_set, limiter
 user_schema = UserSchema()
 user_avatar_schema = UserSchema(only=('avatar_url',))
 user_public_schema = UserSchema(exclude=('email',))
-recipe_pagination_schema= RecipePaginationSchema()
+recipe_pagination_schema= PostPaginationSchema()
 mailgun = Mail(domain=os.environ.get('MAILGUN_DOMAIN'),
                   api_key=os.environ.get('MAILGUN_API_KEY'))
 
@@ -108,6 +109,25 @@ class UserResource(Resource):
         else:
             data = user_public_schema.dump(user).data
         return data, HTTPStatus.OK
+
+class UserFriendResource(Resource):
+
+    @jwt_required
+    def post(self, username):
+        user = User.get_by_username(username)
+        if user is None:
+            return {'message':'user not found'}, HTTPStatus.NOT_FOUND
+        current_user = get_jwt_identity()
+
+    @jwt_required
+    def put(self, username):
+        user = User.get_by_username(username)
+        if user is None:
+            return {'message':'user not found'}, HTTPStatus.NOT_FOUND
+        current_user = get_jwt_identity()
+
+
+
 class MeResource(Resource):
     @jwt_required
     def get(self):

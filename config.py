@@ -21,7 +21,7 @@ class DevelopmentConfig(Config):
 
     SECRET_KEY = 'super-secret-key'
 
-    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://USERNAME:PASSWORD@localhost:5432/smilecook'
+    SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://Atharv:R0gueone@localhost:5432/connect'
 
 class ProductionConfig(Config):
     SECRET_KEY = os.environ.get('SECRET_KEY')
