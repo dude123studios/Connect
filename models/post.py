@@ -15,6 +15,7 @@ class Post(db.Model):
     user_id = db.Column(db.Integer(), db.ForeignKey("user.id"))
     image = db.Column(db.String(100), default=None)
     num_likes = db.Column(db.Integer(), default=0)
+    comments = db.relationship('Comment', backref='post')
 
     @classmethod
     def get_by_id(cls, post_id):

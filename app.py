@@ -3,7 +3,7 @@ from flask_restful import Api
 from flask_migrate import Migrate
 from flask_uploads import configure_uploads, patch_request_class
 import os
-from models import friend, post, user
+from models import friend, post, user, dm, comment
 from extensions import db, jwt, image_set, cache, limiter
 
 

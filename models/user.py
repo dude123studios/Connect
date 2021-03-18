@@ -14,6 +14,8 @@ class User(db.Model):
                            server_default=db.func.now(), onupdate=db.func.now())
     avatar_image = db.Column(db.String(100), default=None)
     posts = db.relationship('Recipe', backref='user')
+    friends = db.relationship('Friend', backref='user')
+    dms = db.relationship('Friend', backref='user')
     @classmethod
     def get_by_username(cls, username):
         return cls.query.filter_by(username=username).first()
