@@ -1,20 +1,20 @@
 from flask import request
 from flask_restful import Resource
 from http import HTTPStatus
-from schemas.post import PostSchema
 from models.post import Post
+from models.comment import Comment
 from flask_jwt_extended import get_jwt_identity, jwt_required, jwt_optional
 from utils import save_image, clear_cache
 from extensions import image_set, cache, limiter
-from models.comment import Comment
 import os
-from schemas.pagination import PostPaginationSchema
+from schemas.pagination import CommentPaginationSchema
 from webargs import fields
 from webargs.flaskparser import use_kwargs
 
 recipe_schema = PostSchema()
-recipe_list_schema = PostSchema(many=True)
-recipe_pagination_schema = PostPaginationSchema()
+recipe_list_schema = RecipeSchema(many=True)
+recipe_cover_schema = RecipeSchema(only=('cover_image',))
+recipe_pagination_schema = RecipePaginationSchema()
 
 
 class PostListResource(Resource):
@@ -46,16 +46,42 @@ class PostListResource(Resource):
 
 
 
+class RecipeCoverUploadResource(Resource):
+    @jwt_required
+    def put(self, recipe_id):
+        file = request.files.get('cover_image')
+        if not file:
+            return {'message': 'Not a valid image'}, HTTPStatus.BAD_REQUEST
+        if not image_set.file_allowed(file, file.filename):
+            return {'message': 'File type not supported'}, HTTPStatus.BAD_REQUEST
+        recipe = Recipe.get_by_id(recipe_id)
+        if recipe is None:
+            return {'message': 'Recipe not found'}, HTTPStatus.NOT_FOUND
+        if recipe.user_id != get_jwt_identity():
+            return {'message': 'Access is not allowed'}, HTTPStatus.FORBIDDEN
+
+        if recipe.cover_image:
+            cover_image_path = image_set.path(recipe.cover_image, folder='cover_images')
+            if os.path.exists(cover_image_path):
+                os.remove(cover_image_path)
+        filename = save_image(file, 'cover_images')
+        recipe.cover_image = filename
+        recipe.save()
+        clear_cache('/recipes')
+        return recipe_cover_schema.dump(recipe).data, HTTPStatus.OK
+
 
 class PostResource(Resource):
 
+    @jwt_optional
     @cache.cached(timeout=120, query_string=True)
     def get(self, recipe_id):
-        recipe = Post.get_by_id(recipe_id=recipe_id)
+        recipe = Recipe.get_by_id(recipe_id=recipe_id)
         if recipe is None:
             return {'message': 'Recipe not found'}, HTTPStatus.NOT_FOUND
-        comments = Comment.get_all_from_post()
         current_user = get_jwt_identity()
+        if recipe.is_public is False and recipe.user_id != current_user:
+            return {'message': 'Access is not allowed'}, HTTPStatus.FORBIDDEN
         return recipe_schema.dump(recipe).data, HTTPStatus.OK
 
     @jwt_required
@@ -65,7 +91,7 @@ class PostResource(Resource):
         data, errors = recipe_schema.load(data=json_data, partial=('name',))
         if errors:
             return {'message': 'Validation errors', 'errors': errors}, HTTPStatus.BAD_REQUEST
-        recipe = Post.get_by_id(recipe_id)
+        recipe = Recipe.get_by_id(recipe_id)
         if recipe is None:
             return {'message': 'Recipe not found'}, HTTPStatus.NOT_FOUND
         current_user = get_jwt_identity()
